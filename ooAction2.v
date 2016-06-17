@@ -1,14 +1,6 @@
 (* -*- mode: coq; mode: visual-line -*-  *)
-Require Import HoTT.Basics HoTT.Types.
-Require Import UnivalenceImpliesFunext.
-Require Import Modalities.Modality.
-Require Import hit.Truncations hit.Connectedness hit.Coeq.
-Require Import Types.Prod.
-Require Import Pointed.
+Require Import HoTT.
 Import TrM.
-Require Import Algebra.ooGroup Algebra.ooAction.
-
-Local Open Scope path_scope.
 
 
 Context (G : ooGroup).
