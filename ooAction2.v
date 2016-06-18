@@ -30,7 +30,7 @@ Local Notation B := classifying_space.
   Defined.
   
   (* a connected type is merely inhabited.
-     i don't think this is done explicitly in the library
+     I don't think this is done explicitly in the library
      although this argument is taken from the proof
      of [indecomposable_0connected] *)
   Definition isinhabitedifisconnected (A : Type) : IsConnected 0 A -> merely A.
@@ -75,20 +75,30 @@ Local Notation B := classifying_space.
   Definition isTransitive (A : ooAction G) : Type
   := IsConnected 0 (sigT A).
   
+  (* alternative def transitive action *)
+  Definition isTransitive' (A : ooAction G) : Type
+  := (isNonempty A) * 
+       (forall x y : A, merely {g : G & g # x = y}).
   
+
   (* free action *)
   Definition isFree (A : ooAction G) : Type
   := IsTrunc 1 (sigT A).
+
+  (* alternative def free action *)
+  Definition isFree' (A : ooAction G) : Type
+  := forall a : A, Contr {g : G & g # a = a}.
   
+
   (* regular action *)
   Definition isRegular (A : ooAction G) : Type
   := (isTransitive A) * (isFree A).
   
+  (* alternative def regular action *)
+  Definition isRegular' (A : ooAction G) : Type
+  := Contr (sigT A).
   
-  (* alternative def transitive action *)
-  Definition isTransitive' (A : ooAction G) : Type
-  := (isNonempty A) * 
-       (forall x y : action_space A, merely {g : G & transport _ g x = y}).
+
   
 
 (* PROOFS *)   
@@ -108,7 +118,8 @@ Local Notation B := classifying_space.
     exact (isinhabitedifisconnected _ X).
   Defined.
   
-  (* both definitions of transitive action are equivalent.
+
+ (** both definitions of transitive action are equivalent.
      we prove that both are mere propositions and that they
      are logically equivalent  *)
   
@@ -177,21 +188,23 @@ Local Notation B := classifying_space.
   
 
 (* MORE DEFINITIONS *)
-  (* orbit action *)
+  (* orbit action: given an action [X] and a point [x] we can
+     consider the orbit of this point. There is an
+     action [orbit_action] that is the restriction of the action
+     on [X] to the the orbit of [x] *)
   Definition orbit_action (X : ooAction G) (x : action_space X) : ooAction G
   := fun b => { y : X(b) &
                 merely ((point (B G) ; x) = (b ; y)) }.
   
   
-  (* stabilizer *)
-  Definition stabilizer' (X : ooAction G) (x : action_space X) : ooGroup
-  := group_loops (Build_pType (sigT (orbit_action X x))
-                              ( (point (B G)) ; (x ; tr idpath ) ) ).
   
-  (* a "more explicit" definition of stabilizer *)
+  (* stabilizer: defined as the connected component of
+     [(point (B G)) ; x)] in [sigT A]
+
+     todo: use [group_loops]
+  *)
   Definition stabilizer (X : ooAction G) (x : action_space X) : ooGroup.
   Proof.
-    (* this proof is probably not so good *)
     pose (Ox := Build_pType (sigT (orbit_action X x))
                             ( (point (B G)) ; (x ; tr idpath ) ) ).
     refine (Build_ooGroup Ox _).
@@ -207,18 +220,7 @@ Local Notation B := classifying_space.
     refine ((the_same _ _ _ _) @ _).
     exact (p ..2).
   Defined.
-  
-  (* map from stabilizer' to group *)
-  Definition stabilizer'_to_G (X : ooAction G) (x : action_space X) :
-               ooGroupHom (stabilizer' X x) G.
-  Proof.
-    refine (Build_pMap _ _ _ _).
-    Unshelve. Focus 2.
-      intro bb.
-      exact (pr1 (pr1 bb)).
-    reflexivity.
-  Defined.
-  
+ 
   (* map from stabilizer to group *)
   Definition stabilizer_to_G (X : ooAction G) (x : action_space X) :
                ooGroupHom (stabilizer X x) G.
@@ -292,10 +294,33 @@ Local Notation B := classifying_space.
   Defined.
   
   (* this is probably false but it seems to be true for
-     subgroups (when the map [B H -> B G] is fibered in set 
+     subgroups (i.e. when the map [B H -> B G] is fibered in set)
   (* this map is an equivalence *)
   Definition isequiv_cosets_to_orbit
                {X : ooAction G} {x : action_space X} (b : B G) :
                  IsEquiv (@cosets_to_orbit X x b).
   Proof.
   *)
+  
+
+
+
+
+
+
+(* other *)
+  (* stabilizer: *)
+  Definition stabilizer' (X : ooAction G) (x : action_space X) : ooGroup
+  := group_loops (Build_pType (sigT (orbit_action X x))
+                              ( (point (B G)) ; (x ; tr idpath ) ) ).
+  
+  (* map from stabilizer' to group *)
+  Definition stabilizer'_to_G (X : ooAction G) (x : action_space X) :
+               ooGroupHom (stabilizer' X x) G.
+  Proof.
+    refine (Build_pMap _ _ _ _).
+    Unshelve. Focus 2.
+      intro bb.
+      exact (pr1 (pr1 bb)).
+    reflexivity.
+  Defined.
