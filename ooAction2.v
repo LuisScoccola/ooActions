@@ -6,6 +6,7 @@ Import TrM.
 Context (G : ooGroup).
 Local Notation B := classifying_space.
 
+
 Section SomeLemmas.
 
   (* given a fibration [A : T -> U] and a dependent fibration [B (t : T) : (a : T a) -> U]
@@ -95,16 +96,88 @@ Section BasicDefinitions.
 
   (* regular action *)
   Definition isRegular (A : ooAction G) : Type
-  := (isTransitive A) * (isFree A).
+  := Contr (sigT A).
   
   (* alternative def regular action *)
   Definition isRegular' (A : ooAction G) : Type
-  := Contr (sigT A).
+  := (isTransitive A) * (isFree A).
+ 
+
+  (* the yoneda action *)
+  Definition yoneda_action : ooAction G
+  := fun b => point (B G) = b.
+ 
+
+  (* an action on a space [X] induces a morphism [G -> Aut X] *)
+  Definition action_induces_morph `{Univalence}
+             (A : ooAction G)
+             : ooGroupHom G (Aut A).
+  Proof.
+    simple refine (Build_pMap _ _ _ _).
+      - intro b. exists (A b).
+          (* todo: this is probably already abstracted somewhere *)
+        pose (mp := merely_path_is0connected _ (point (B G)) b).
+          (* again, this should be a tactic *)
+        simpl in mp; generalize mp; refine (Trunc_rec _); intro p.
+        exact (tr (ap A p^)).
+      - simple refine (path_sigma _ _ _ _ _). 
+          + reflexivity.
+          + apply path_ishprop.
+  Defined.
+
+ 
+  (* orbit action: given an action [X] and a point [x] we can
+     consider the orbit of this point. There is an
+     action [orbit_action] that is the restriction of the action
+     on [X] to the the orbit of [x] *)
+  Definition orbit_action
+             (X : ooAction G) (x : action_space X)
+             : ooAction G
+  := fun b => { y : X(b) &
+                merely ((point (B G) ; x) = (b ; y)) }.
   
+  
+  
+  (* stabilizer: given an action [A] and an element [x : A] we
+     define the stabilizer of [x] as the connected component of
+     [(point (B G)) ; x)] in [sigT A]
+
+     todo: use [group_loops]
+  *)
+  Definition stabilizer
+             (X : ooAction G) (x : action_space X)
+             : ooGroup.
+  Proof.
+    pose (Ox := Build_pType (sigT (orbit_action X x))
+                            ( (point (B G)) ; (x ; tr idpath ) ) ).
+    refine (Build_ooGroup Ox _).
+    (* this is how Mike does it in ooGroup.v *)
+    cut (IsSurjection (unit_name (point Ox))).
+    { intros; refine (conn_pointed_type (point _)). }
+    apply BuildIsSurjection; simpl; intros [b ty].
+    destruct ty as (y, p).
+    strip_truncations. apply tr. exists tt.
+    simple refine (path_sigma _ _ _ _ _).
+      - exact (p ..1).
+      - apply path_sigma_hprop. simpl.
+        refine ((transport_on_first_coordinate _ _ _ _) @ _).
+        exact (p ..2).
+  Defined.
+ 
+  (* there is a natural map from the stabilizer to the group *)
+  Definition stabilizer_to_G (X : ooAction G) (x : action_space X) :
+               ooGroupHom (stabilizer X x) G.
+  Proof.  
+    simple refine (Build_pMap _ _ _ _).
+      - exact pr1.
+      - reflexivity.
+  Defined.
+ 
+
 End BasicDefinitions.
   
 
-Section ProofsAboutDefinitions.
+Section ProofsAboutTransitiveActions.
 
   (* a transitive action is non-empty *)
   Definition isnonempty_transitiveaction `{Univalence}
@@ -122,7 +195,7 @@ Section ProofsAboutDefinitions.
       - exact (merely_path_is0connected _ (point (B G)) (pr1 mSA)).
       - exact (isinhabitedifisconnected _ X).
   Defined.
-  
+
 
  (** both definitions of transitive action are equivalent.
      we prove that both are mere propositions and that they
@@ -220,7 +293,12 @@ Section ProofsAboutDefinitions.
              (A : ooAction G)
              : IsHProp (isFree' A)
   := ishprop_productofhprop _ _.
+
+End ProofsAboutTransitiveActions.
   
+
+
+Section ProofsAboutFreeActions.
  
   (* we use [trunc_equiv] to prove this without univalence :) *)
   Definition free2free'
@@ -235,6 +313,7 @@ Section ProofsAboutDefinitions.
     reflexivity.
   Defined.
 
+  
   Definition free'2free `{Univalence}
              (A : ooAction G)
              : isFree' A -> isFree A.
@@ -255,7 +334,7 @@ Section ProofsAboutDefinitions.
     intro l.
     refine (contr_inhabited_hprop _ _).
     apply path_contr.
-  Defined.
+  Qed.
 
 
   Definition freeequivfree' `{Univalence}
@@ -263,58 +342,31 @@ Section ProofsAboutDefinitions.
              : IsEquiv (free2free' A)
   := isequiv_iff_hprop (free2free' A) (free'2free A).
  
-End ProofsAboutDefinitions.
-  
-
-Section MoreDefinitions.
-  (* orbit action: given an action [X] and a point [x] we can
-     consider the orbit of this point. There is an
-     action [orbit_action] that is the restriction of the action
-     on [X] to the the orbit of [x] *)
-  Definition orbit_action
-             (X : ooAction G) (x : action_space X)
-             : ooAction G
-  := fun b => { y : X(b) &
-                merely ((point (B G) ; x) = (b ; y)) }.
-  
-  
-  
-  (* stabilizer: defined as the connected component of
-     [(point (B G)) ; x)] in [sigT A]
-
-     todo: use [group_loops]
-  *)
-  Definition stabilizer
-             (X : ooAction G) (x : action_space X)
-             : ooGroup.
-  Proof.
-    pose (Ox := Build_pType (sigT (orbit_action X x))
-                            ( (point (B G)) ; (x ; tr idpath ) ) ).
-    refine (Build_ooGroup Ox _).
-    (* this is how Mike does it in ooGroup.v *)
-    cut (IsSurjection (unit_name (point Ox))).
-    { intros; refine (conn_pointed_type (point _)). }
-    apply BuildIsSurjection; simpl; intros [b ty].
-    destruct ty as (y, p).
-    strip_truncations. apply tr. exists tt.
-    simple refine (path_sigma _ _ _ _ _).
-      - exact (p ..1).
-      - apply path_sigma_hprop. simpl.
-        refine ((transport_on_first_coordinate _ _ _ _) @ _).
-        exact (p ..2).
-  Defined.
+End ProofsAboutFreeActions.
  
-  (* map from stabilizer to group *)
-  Definition stabilizer_to_G (X : ooAction G) (x : action_space X) :
-               ooGroupHom (stabilizer X x) G.
-  Proof.  
-    simple refine (Build_pMap _ _ _ _).
-      - exact pr1.
-      - reflexivity.
+
+
+Section ProofsAboutYonedaAction.
+
+  (* the action space of the yoneda action is the group [G] *)
+  Definition yoneda_acts_on_G : action_space yoneda_action = G
+  := 1.
+  
+
+  (* the Yoneda action is regular *)
+  Definition isRegular_yoneda : isRegular yoneda_action.
+  Proof.
+    apply contr_basedpaths.
   Defined.
+
+End ProofsAboutYonedaAction.
+ 
+
+
+
+Section ProofsAboutStabilizer.
   
-  
-  (* how it computes on paths *)
+  (* how the map [Stab -> G] computes on paths *)
   Definition stabilizer_to_G_path
              (X : ooAction G) (x : action_space X) (l : stabilizer X x)
              : (stabilizer_to_G X x) l = l ..1.
@@ -324,7 +376,11 @@ Section MoreDefinitions.
     reflexivity.
   Defined.
   
+
+  (* maybe we should coerce an element of a stabilizer to an
+     element of the group? *)
   
+
   (* the stabilizer of [x] acts trivially on [x] *)
   Definition stab_acts_trivially
              {X : ooAction G} {x : action_space X} (l : stabilizer X x)
@@ -338,6 +394,10 @@ Section MoreDefinitions.
     apply pr.
   Defined.
   
+End ProofsAboutStabilizer.
+  
+  
+Section Cosets.
   
   (* relation of being in the same coset *)
   Definition in_coset_morph
@@ -384,7 +444,7 @@ Section MoreDefinitions.
                        (stabilizer_to_G_path _ _ l) @ _).
             apply pr.
           + apply path_ishprop.
-  Defined.
+  Qed.
   
   (* this is probably false but it seems to be true for
      subgroups (i.e. when the map [B H -> B G] is fibered in set)
@@ -395,7 +455,7 @@ Section MoreDefinitions.
   Proof.
   *)
   
-End MoreDefinitions.
+End Cosets.
 
 
 Section More.
