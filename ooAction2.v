@@ -73,6 +73,7 @@ Section BasicDefinitions.
   Definition isNonempty (A : ooAction G) : Type
   := merely (action_space A).
   
+
   (* transitive action *)
   Definition isTransitive (A : ooAction G) : Type
   := IsConnected 0 (sigT A).
@@ -85,7 +86,7 @@ Section BasicDefinitions.
 
   (* free action *)
   Definition isFree (A : ooAction G) : Type
-  := IsTrunc 1 (sigT A).
+  := IsTrunc 0 (sigT A).
 
   (* alternative def free action *)
   Definition isFree' (A : ooAction G) : Type
@@ -196,7 +197,72 @@ Section ProofsAboutDefinitions.
         (* finally compose the equalities *)
         exact (tr (xetx @ txety @ yety^)).
   Defined.
+  
 
+  Definition transitiveequivtransitive' `{Univalence}
+             (A : ooAction G)
+             : IsEquiv (transitive2transitive' A)
+  := isequiv_iff_hprop (transitive2transitive' A) (transitive'2transitive A).
+  
+
+ (** both definitions of free action are equivalent.
+     we prove that both are mere propositions and that they
+     are logically equivalent  *)
+
+  (* being free is a mere property *)
+  Definition ishProp_isFree `{Funext}
+             (A : ooAction G)
+             : IsHProp (isFree A)
+  := hprop_inO _ _ _.
+  
+  (* being free' is a mere property *)
+  Definition ishProp_isFree' `{Funext}
+             (A : ooAction G)
+             : IsHProp (isFree' A)
+  := ishprop_productofhprop _ _.
+  
+ 
+  (* we use [trunc_equiv] to prove this without univalence :) *)
+  Definition free2free'
+             (A : ooAction G)
+             : isFree A -> isFree' A.
+  Proof.
+    intro X. intro a.
+    pose (pathspacesigma := equiv_path_sigma _ (point (B G) ; a)
+                                               (point (B G) ; a)).
+    refine (trunc_equiv' _ pathspacesigma^-1).
+    refine (contr_inhabited_hprop _ _).
+    reflexivity.
+  Defined.
+
+  Definition free'2free `{Univalence}
+             (A : ooAction G)
+             : isFree' A -> isFree A.
+  Proof.
+      (* we reduce it to the case of loopspaces*)
+    intro X. intros x y p. induction p.
+    unfold isFree' in X.
+    pose (mq := merely_path_is0connected _ (point (B G)) (pr1 x)).
+      (* again, this should be a tactic *)
+    simpl in mq; generalize mq; refine (Trunc_rec _); intro q.
+    pose (tX := transport (fun b => forall a : A b,
+                           Contr {g : b = b & transport A g a = a}) q X).
+    pose (tXatx2 := tX (pr2 x)).
+      (* we can probably avoid using univalence here *)
+    pose (pathspacesigma := path_universe (equiv_path_sigma _ x x)).
+      (* todo: improve this proof *)
+    rewrite pathspacesigma in tXatx2.
+    intro l.
+    refine (contr_inhabited_hprop _ _).
+    apply path_contr.
+  Defined.
+
+
+  Definition freeequivfree' `{Univalence}
+             (A : ooAction G)
+             : IsEquiv (free2free' A)
+  := isequiv_iff_hprop (free2free' A) (free'2free A).
+ 
 End ProofsAboutDefinitions.
   
 
