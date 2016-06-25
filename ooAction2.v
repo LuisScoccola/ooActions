@@ -115,7 +115,7 @@ Section BasicDefinitions.
   Proof.
     simple refine (Build_pMap _ _ _ _).
       - intro b. exists (A b).
-          (* todo: this is probably already abstracted somewhere *)
+          (* todo: the following is probably already abstracted somewhere *)
         pose (mp := merely_path_is0connected _ (point (B G)) b).
           (* again, this should be a tactic *)
         simpl in mp; generalize mp; refine (Trunc_rec _); intro p.
@@ -124,6 +124,16 @@ Section BasicDefinitions.
           + reflexivity.
           + apply path_ishprop.
   Defined.
+
+  (* alternative def faithful action *)
+  Definition isFaithful `{Univalence}
+               (A : ooAction G) : Type
+  := IsEmbedding (action_induces_morph A).
+
+  (* faithful action *)
+  Definition isFaithful' (A : ooAction G) : Type
+  := Contr {g : G & forall a : A, g # a = a}.
+
 
  
   (* orbit action: given an action [X] and a point [x] we can
@@ -277,7 +287,12 @@ Section ProofsAboutTransitiveActions.
              : IsEquiv (transitive2transitive' A)
   := isequiv_iff_hprop (transitive2transitive' A) (transitive'2transitive A).
   
+End ProofsAboutTransitiveActions.
+  
 
+
+Section ProofsAboutFreeActions.
+ 
  (** both definitions of free action are equivalent.
      we prove that both are mere propositions and that they
      are logically equivalent  *)
@@ -294,12 +309,7 @@ Section ProofsAboutTransitiveActions.
              : IsHProp (isFree' A)
   := ishprop_productofhprop _ _.
 
-End ProofsAboutTransitiveActions.
-  
 
-
-Section ProofsAboutFreeActions.
- 
   (* we use [trunc_equiv] to prove this without univalence :) *)
   Definition free2free'
              (A : ooAction G)
@@ -346,6 +356,7 @@ End ProofsAboutFreeActions.
  
 
 
+
 Section ProofsAboutYonedaAction.
 
   (* the action space of the yoneda action is the group [G] *)
@@ -362,6 +373,39 @@ Section ProofsAboutYonedaAction.
 End ProofsAboutYonedaAction.
  
 
+
+
+Section ProofsAboutFaithfulActions.
+  (* being faithful is a mere property *)
+  Definition ishProp_isfaithful `{Univalence}
+             (A : ooAction G)
+             : IsHProp (isFaithful A).
+  Proof.
+    exact _.
+  Defined.
+    
+  
+  (* being faithful' is a mere property *)
+  Definition ishProp_isfaithful' `{Funext}
+             (A : ooAction G)
+             : IsHProp (isFaithful' A)
+  := hprop_inO _ _ _.
+
+
+  (* todo: finish this equivalence
+  Definition faithful2faithful' `{Univalence}
+             (A : ooAction G)
+             : isFaithful A -> isFaithful' A.
+  Proof.
+    intro X.
+    simple refine (BuildContr _ _ _).
+      - exists idpath. reflexivity.
+      - unfold isFaithful in X.
+  *)
+
+
+End ProofsAboutFaithfulActions.
+ 
 
 
 Section ProofsAboutStabilizer.
@@ -396,6 +440,7 @@ Section ProofsAboutStabilizer.
   
 End ProofsAboutStabilizer.
   
+
   
 Section Cosets.
   
@@ -446,7 +491,7 @@ Section Cosets.
           + apply path_ishprop.
   Qed.
   
-  (* this is probably false but it seems to be true for
+  (* this is false but it seems to be true for
      subgroups (i.e. when the map [B H -> B G] is fibered in set)
   (* this map is an equivalence *)
   Definition isequiv_cosets_to_orbit
